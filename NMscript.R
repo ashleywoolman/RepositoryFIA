@@ -7,8 +7,8 @@ library(tidyverse)
 library(dplyr)
 
 
-nm_tree<-read.csv("TREE/raw/NM_TREE_042820.csv")
-nm_cond<-read.csv("COND/raw/NM_COND_042820.csv")
+nm_tree<-read.csv("NM_TREE_042820.csv")
+nm_cond<-read.csv("NM_COND_042820.csv")
 
 # remove first cycle of inventory (from 1987)
 nm_cond1<- nm_cond %>% filter(CYCLE>1)
@@ -62,11 +62,11 @@ length(unique(nm_cond5$SUCP))
 
 
 # check if number of plots for cycle 2 is equal to cycle 3
-cycle3plots2chk<- nm_cond5 %>% filter(cycle_aw==3)
-length(unique(cycle3plots2$SUCP))
+cycle3plotsck<- nm_cond5 %>% filter(cycle_aw==3)
+length(unique(cycle3plotsck$SUCP)) # 5239
 
 cycle2plotschk<-nm_cond5 %>% filter(cycle_aw==2)
-length(unique(cycle2plotschk$SUCP))
+length(unique(cycle2plotschk$SUCP)) #5237
 
 #cycle 2 has 2 fewer plots?
 length(unique(nm_cond5$SUCP))
@@ -107,9 +107,9 @@ length(unique(notreatmentcond$SUCP))
 # 5239- 64= 5175. THis worked.
 
 chk3<- notreatmentcond %>% filter(cycle_aw==3)
-length(unique(t$SUCP))
+length(unique(chk3$SUCP))
 chk2<-notreatmentcond %>% filter(cycle_aw==2)
-length(unique(r$SUCP))
+length(unique(chk2$SUCP))
 # this worked, 5,175 unique SUCP
 
 
@@ -125,7 +125,7 @@ length(unique(r$SUCP))
 #
 ## 3. Identify resampled plots for Tree dataframe
 # 
-nm_tree<-read.csv("TREE/raw/NM_TREE_042820.csv")
+nm_tree<-read.csv("NM_TREE_042820.csv")
 nm_tree1<- nm_tree %>% filter(CYCLE>1)
 nm_tree1$CYCLE<- factor(nm_tree1$CYCLE)
 summary(nm_tree1)
@@ -151,10 +151,7 @@ nm_tree4<- nm_tree3[,c(1:9, 27, 26, 10:25)]
 length(unique(nm_tree4$SUCP))
 summary(nm_tree4)
 
-### Jonathan, This shows only 1,595 plots were remeasured, a huge decrease in Conditions table of 5,239 resampled. 
-# I think maybe this is because there's a lot of plots that have records yet do not have trees? ... I didn't notice
-# this huge decrease when I did it on the bigger dataset. 
-### Also, again this yeilded 0 for cycle_aw 1 (pre-2000)
+
 
 
 
@@ -196,7 +193,7 @@ table(nm_tree5$SPCD)
 unique(nm_tree5$SPCD)
 
 #subset of PIPO, keeping SUCP
-pipoplotsnm<- unique(nm_tree5[nm_tree5$SPCD==122,]$SUCP)
+pipoplots<- unique(nm_tree5[nm_tree5$SPCD==122,]$SUCP)
 
 #Create dataframe that contains plots that have had PIPO at any time, and the associated species
 # I went through the FIA metadata and made a spreadsheet of what all the SPCD codes listed 
@@ -209,7 +206,7 @@ pipoplotsnm<- unique(nm_tree5[nm_tree5$SPCD==122,]$SUCP)
 # 0 PIPO in this plot" does that make sense? So maybe I need to find a way to add in rows for 0 if 
 # this has happened?
 
-pipoplotsnm<- nm_tree5 %>% filter(SPCD==122|(SPCD==814 & SUCP%in%pipoplots|
+NMpipo<- nm_tree5 %>% filter(SPCD==122|(SPCD==814 & SUCP%in%pipoplots|
                                                      SPCD==15 & SUCP%in%pipoplots |
                                                      SPCD==18 & SUCP%in%pipoplots |
                                                      SPCD==19 & SUCP%in%pipoplots |
