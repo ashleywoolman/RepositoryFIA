@@ -67,7 +67,7 @@ length(unique(fctree4$SUCP)) #14655
 
 
 
-## The above does not work. Cannot assume if it has a cycle 3 then it has a cycle 2... 
+## Filter for resampled plots. The old method did not work.
 summary(fctree4)
 cyclefilt<- fctree4[,c(28,7,27)]
 summary(cyclefilt)
@@ -127,7 +127,7 @@ levels(fctree6$SPCD)
 pipoplots<- unique(fctree6[fctree6$SPCD==93,]$SUCP)
 
 #Create dataframe that contains plots that have had PIPO at any time, and the associated species
-allspecies<- fctree6 %>% filter(SPCD==93|(SPCD==93 & SUCP%in%pipoplots |
+allspecies<- fctree6 %>% filter(SPCD==93|(SPCD==15 & SUCP%in%pipoplots |
                                           SPCD==18 & SUCP%in%pipoplots |
                                           SPCD==19 & SUCP%in%pipoplots |
                                           SPCD==51 & SUCP%in%pipoplots |
@@ -184,8 +184,8 @@ allspecies<- fctree6 %>% filter(SPCD==93|(SPCD==93 & SUCP%in%pipoplots |
                                           SPCD==846 & SUCP%in%pipoplots |
                                           SPCD==847 & SUCP%in%pipoplots |
                                           SPCD==974 & SUCP%in%pipoplots))
-length(unique(allspecies$SPCD)) #42 associate species
-length(unique(allspecies$SUCP)) #1727 plots
+length(unique(allspecies$SPCD)) #21 associate species
+length(unique(allspecies$SUCP)) #1177 plots
 summary(allspecies)
 
 # Edit to keep only the plot info of the plots with PIEN/sp at any time AND the other species
@@ -216,11 +216,11 @@ summary(testit)
 
 # Remove plots with any STATUSCD 0s.
 code0<- species2 %>% filter(STATUSCD==0)
-length(unique(code0$SUCP)) #253 plots
+length(unique(code0$SUCP)) #69 plots
 
 # Remove statuscd 0 plots
 fctree8<- species2[!(species2$SUCP %in% code0$SUCP),]
-length(unique(fctree8$SUCP)) # 1474 (1727-253= 1474, this worked)
+length(unique(fctree8$SUCP)) # 1177-69=1108, this worked
 summary(fctree8)
 # there are no STATUSCD 0 and there are 791 code 3
 
@@ -279,26 +279,28 @@ summary(testit)
 pipotesty<- testit[, c(1:6)] 
 summary(pipotesty)
 pipotesty2<- pipotesty %>% distinct()
-length(unique(pipotesty2$SUCP)) #1474 plots
+length(unique(pipotesty2$SUCP)) #1108 plots
 summary(pipotesty2)
 
 # Remove CYLCE, SUBCYLCE, INVYR from pipo3 and merge pipo3 with an original df that contains SUCP, CYCLE, SUBCYCLE, INVYR, and merge by cycle_aw
 pipo5<- merge (pipo4, pipotesty2, by=c("SUCP", "STATECD", "cycle_aw"))
 pipo5$DIACALC[is.na(pipo5$DIACALC)]<-0
+pipo5$SPCD[is.na(pipo5$SPCD)]<-93 #### ****** FILL IN FOR PROPER SPECIES CODE***
 summary(pipo5)
-length(unique(pipo5$SUCP)) #1474
+length(unique(pipo5$SUCP)) #1108
 
 # TEST: (dont need to run) Get tree count per size class
 pipo5$treeexist<- as.logical(pipo5$DIACALC)
 pipo5test<- pipo5 %>% group_by(SUCP, STATECD, cycle_aw,
                            SPCD, STATUSCD, SizeClass) %>% summarise(Treecount=sum(treeexist))
-length(unique(pipo5test$SUCP)) #1474
+length(unique(pipo5test$SUCP)) #1108
 
 # This works because 2*2*4=16. 23584/16= 1474 plots.
 
 summary(pipo5test)
 
 
+# Use Plot table data to get MEASYR variable 
 
 # Can link PLT_CN to PLOT table's MEASYR
 azplot<- read.csv("AZ_PLOT.csv")
@@ -353,7 +355,7 @@ summary(pipotesty2)
 
 plotinfo<- merge(pipotesty2, fcplot6, all.x = TRUE)
 summary(plotinfo)
-length(unique(plotinfo$SUCP)) #1474 plots
+length(unique(plotinfo$SUCP)) #1108 plots
 
 
 plotinfo$SUCP<- factor(plotinfo$SUCP)
@@ -366,7 +368,7 @@ summary(plotinfo)
 
 summary(pipo5)
 pipo6<- merge (pipo5, plotinfo, by=c("SUCP", "STATECD", "cycle_aw", "CYCLE", "SUBCYCLE", "INVYR"))
-length(unique(pipo6$SUCP)) #1474 plots
+length(unique(pipo6$SUCP)) #1108 plots
 summary(pipo6)
 
 pipo6$STATECD<- factor(pipo6$STATECD)
@@ -395,7 +397,7 @@ summary(pipo7)
 pipo7$treeexist<- as.logical(pipo7$DIACALC)
 TPApipo<- pipo7 %>% group_by(SUCP, STATECD, INVYR, MEASYEAR, cycle_aw, SPCD, STATUSCD, SizeClass) %>% summarise(Treecount=sum(treeexist))
 summary(TPApipo)
-length(unique(TPApipo$SUCP)) #1474 plots
+length(unique(TPApipo$SUCP)) #1108 plots
 
 # For subplot, I calculated expansion factor with (4*0.04154172) = 6.018046, where 4 is the number
 # of subplots in plot, and 0.04154172 is the area of a 1/24acre subplot. 
@@ -437,7 +439,7 @@ BApipo<- pipo7 %>% group_by(SUCP, STATECD, INVYR, MEASYEAR, cycle_aw, SPCD, STAT
   summarise(BAtotal_AcreFt2=sum(BA_PerAcre_Sqft))
 summary(BApipo)
 
-length(unique(BApipo$SUCP)) #1474
+length(unique(BApipo$SUCP)) #1108
 
 #
 ## Merge BA and TPA together
@@ -448,7 +450,7 @@ length(unique(BApipo$SUCP)) #1474
 # TPAalltreeslive7 is from "AllTreeSizes_TPA"
 BAandTPApipo<- merge (TPApipo2, BApipo, by=c("SUCP", "STATECD","INVYR", "MEASYEAR", "cycle_aw", "SPCD", "STATUSCD", "SizeClass"))
 summary(BAandTPApipo)
-BAandTPApipo$SPCD[is.na(BAandTPApipo$SPCD)]<-93
+BAandTPApipo$SPCD[is.na(BAandTPApipo$SPCD)]<-93 # *** if there are still any NA's change species code
 summary(BAandTPApipo)
 
 

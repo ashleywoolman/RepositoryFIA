@@ -1,12 +1,11 @@
 
+# Seedlings and Fire 
 
 
 
-
-### Only Annual Seedlings
+###  Annual Seedlings
 
 summary(BAandTPApipo)
-# Merge ^ with PLT_CN from 'withunit'
 
 # 1.  Create plot list of 1474 plots
 all4plotlist<- BAandTPApipo[, c(1,2,3,4,5,6)]
@@ -120,7 +119,7 @@ summary(deadseed4) #numbers match now.
 summary(deadseed4)
 
 # Merge 'fake dead seedling data' with live seedlig data
-allseed12<- merge(allseed10, deadseed4, all = TRUE)
+allseed11<- merge(allseed10, deadseed4, all = TRUE)
 summary(allseed11)
 allseed12<- allseed11 %>% distinct()
 summary(allseed12)
@@ -149,90 +148,200 @@ BAandTPApipo2<- merge(allseed12, BAandTPApipo, all=TRUE)
 BAandTPApipo2$BAtotal_AcreFt2[is.na(BAandTPApipo2$BAtotal_AcreFt2)]<-0
 summary(BAandTPApipo2)
 
+BAandTPApipo3<- BAandTPApipo2[, c(1:10,12)]
+summary(BAandTPApipo3)
+
+# save final df
+write.csv(BAandTPApipo3, "PIEN.csv")
+
+
+
+
+# Change names for graphs
+
+levels(BAandTPApipo2$SizeClass)
+levels(BAandTPApipo2$SizeClass)<- c("Seedling", "Sapling", "Small Tree: 5-10in", 
+                                 "Medium Tree: 10-15in", "Large Tree: >15")
+
+
+levels(BAandTPApipo2$STATUSCD)
+levels(BAandTPApipo2$STATUSCD)<- c("Live", "Dead")
+summary(BAandTPApipo2)
+length(unique(BAandTPApipo2$SUCP))
+
+
+
 ggplot(BAandTPApipo2, aes(x=cycle_aw, y=Treecount, linetype=STATUSCD))+
   facet_grid(~SizeClass)+
   geom_smooth(aes(group=STATUSCD), method = "glm", size=1)+
   theme_set(theme_bw())+
   labs(x= "Inventory Cycle")+
-  labs(y= "Num Trees/Plot")+
+  labs(y= "Number Trees/Plot")+
   theme(axis.title.y = element_text(size=15))+
-  theme(strip.text=element_text(size=10))
+  theme(strip.text=element_text(size=10))+
+  theme(legend.title = element_blank())
+
+ggplot(BAandTPApipo2, aes(x=cycle_aw, y=TPA, linetype=STATUSCD))+
+  facet_grid(~SizeClass)+
+  geom_smooth(aes(group=STATUSCD), method = "glm", size=1)+
+  theme_set(theme_bw())+
+  labs(x= "Inventory Cycle")+
+  labs(y= "Trees Per Acre")+
+  theme(axis.title.y = element_text(size=15))+
+  theme(strip.text=element_text(size=10))+
+  theme(legend.title = element_blank())
+
+ggplot(BAandTPApipo2, aes(x=cycle_aw, y=BAtotal_AcreFt2, linetype=STATUSCD))+
+  facet_grid(~SizeClass)+
+  geom_smooth(aes(group=STATUSCD), method = "glm", size=1)+
+  theme_set(theme_bw())+
+  labs(x= "Inventory Cycle")+
+  labs(y= "Basal Area (ft2/acre")+
+  theme(axis.title.y = element_text(size=15))+
+  theme(strip.text=element_text(size=10))+
+  theme(legend.title = element_blank())
 
 
-# To identify fire:
-####
-###########
 
-fcCOND<- read.csv("AllStates_COND_RAW.csv",  row.names = 1)
-# 1. get variables I want and create SUCP for annual
-fcCOND2<- fcCOND[, c(1:8,38:43)]
+
+
+
+
+
+
+### Add Fire
+
+AZcond<- read.csv("AZ_COND.csv") 
+COcond<- read.csv("CO_COND.csv")
+UTcond<- read.csv("UT_COND.csv")
+NMcond<- read.csv("NM_COND.csv")
+fcCOND<- rbind(UTcond, AZcond, COcond, NMcond)
+
+write.csv(fcCOND, "AllStates_COND_RAW.csv")
+
+# Start with only post 2000 (for SUCP)
+# then do 1999 with PLT_CN
+
+fcCOND<- read.csv("AllStates_COND_RAW.csv", row.names = 1)
+summary(fcCOND)
+
+# get variables I want
+fcCOND2<- fcCOND[, c(3:7,38:43,79)]
 summary(fcCOND2)
 
 # Create SUCP
 SUCP<- c('STATECD', 'UNITCD', 'COUNTYCD', 'PLOT')
 fcCOND2$SUCP<- apply(fcCOND2[,SUCP], 1, paste, collapse="_")
 fcCOND2$SUCP<- factor(fcCOND2$SUCP)
-length(unique(fcCOND2$SUCP)) #82862 PLOTS
+length(unique(fcCOND2$SUCP)) #1258 PLOTS
 summary(fcCOND2)
 
-
-# need plot list by cycle/year
-summary(BAandTPApipo2)
-plotlist<- BAandTPApipo2[, c(1:3)]
-plotlist2<- plotlist %>% distinct()
-summary(plotlist2)
-
-fcCOND3<- merge(plotlist2, fcCOND2, all.x = TRUE)
+# create cycle_aw
+fcCOND3<- fcCOND2 %>% mutate(cycle_aw = case_when(STATECD==49 & CYCLE==2 ~ '2', 
+                                                    STATECD==49 & CYCLE==3 ~ '3',
+                                                    STATECD==8 & CYCLE==2 ~ '2',
+                                                    STATECD==8 & CYCLE==3 ~ '3',
+                                                    STATECD==4 & CYCLE==3 ~ '2',
+                                                    STATECD==4 & CYCLE==4 ~ '3',
+                                                    STATECD==35 & CYCLE==3 ~ '2',
+                                                    STATECD==35 & CYCLE==4 ~ '3'))
+fcCOND3$cycle_aw<- factor(fcCOND3$cycle_aw)
 summary(fcCOND3)
-length(unique(fcCOND3$SUCP))   #1474           
 
-# 2. More cleaning of variables I want
-fcCOND4<- fcCOND3[, c(1:3,10,11)]
+
+# Filter for fire disturbances
+summary(fcCOND3)
+fcCOND4<- fcCOND3 %>% filter(DSTRBCD1==30| DSTRBCD1==31| DSTRBCD1==32|
+                               DSTRBCD2==30| DSTRBCD2==31| DSTRBCD2==32|
+                               DSTRBCD3==30| DSTRBCD3==31| DSTRBCD3==32)
 summary(fcCOND4)
-
-# 3. Drop NAs
-fcCOND5<- fcCOND4 %>% drop_na(DSTRBCD1, DSTRBYR1)
-library(dplyr)
+fcCOND5<- fcCOND4[, c(13,14,1,2,6:11)]
 summary(fcCOND5)
 
-# 4. Filter for fire between cycle 2 and 3 
-#   For AZ(4)  fire year greater than 1999 and less than 2015
-#  For NM (35) fire year greater than 1999 and less than 2011 
-#  DSTRBCD 30, 31, and 32
+#only need plot list by cycle/year
+summary(all4plotlist2)
+all4plotlist3<- all4plotlist2[, c(1:5)]
+summary(all4plotlist3)
 
-fcCOND6<- fcCOND5 %>% filter(DSTRBCD1==30| DSTRBCD1==31| DSTRBCD1==32)
+# Merge with plot list
+fcCOND6<- merge(all4plotlist3, fcCOND5, all.x = TRUE)
+summary(fcCOND6)
+length(unique(fcCOND6$SUCP)) # 1108 plots
 
-fcCOND7<- filter(fcCOND6, (STATECD==4 & DSTRBYR1> 2001 & DSTRBYR1<2011 |
-                             STATECD==35 & DSTRBYR1>2008 & DSTRBYR1<2014 |
-                             STATECD==8 & DSTRBYR1>2002 & DSTRBYR1<2012 |
-                             STATECD==49 & DSTRBYR1>2000 & DSTRBYR1 <2010))
+# Remove NA's for now
+fcCOND7<- fcCOND6 %>% drop_na(DSTRBCD1, DSTRBYR1)
+length(unique(fcCOND6$SUCP)) # 39 plots burned 
 
-# but this excludes fires outside of these boundaries.... 
+# Need the matching plot of a plot that burned to contain the year
 
+#### Identify plots that burned from cycle 1-2?
+# First identify plots in cycle 1 fire year > measured year
+cycle2<- fcCOND6 %>% filter(cycle_aw==2 & DSTRBYR1>MEASYEAR | cycle_aw==2 & DSTRBYR2>MEASYEAR | cycle_aw==2 & DSTRBYR3>MEASYEAR)
+
+cycle3<- fcCOND6 %>% filter(cycle_aw==3 & DSTRBYR1<MEASYEAR | cycle_aw==3 & DSTRBYR2<MEASYEAR | cycle_aw==3 & DSTRBYR3<MEASYEAR)
+
+cycle23burn<- merge(cycle2, cycle3, all=TRUE)
+
+
+# change code 30-32 to 1
+cycle23burn$Fire [cycle23burn$DSTRBCD1 >29| cycle23burn$DSTRBCD1<33|
+                        cycle23burn$DSTRBCD2 >29| cycle23burn$DSTRBCD2<33|
+                        cycle23burn$DSTRBCD3 >29| cycle23burn$DSTRBCD3<33] <- "1"
+
+# Remove any rows with 9999 as disturbance year
+cycle23burn2<- cycle23burn[!(cycle23burn$Fire=="1" & cycle23burn$DSTRBYR1=="9999"),]
+summary(cycle23burn2)
+
+# this df contains plot that burned between cycle 2 and 3. can delete columns we dont need now.
+cycle23burn3<- cycle23burn2[, c(1:5,12)]
+summary(cycle23burn3)
+cycle23burn4<- cycle23burn3 %>% distinct()
+summary(cycle23burn4)
+length(unique(cycle23burn4$SUCP)) #27 plots burned
+
+cycle23burn4$Fire<- factor(cycle23burn4$Fire)
+
+
+summary(BAandTPApipo3)
+
+# add fire to summary(BAandTPApipo3)
+
+BAandTPApipo4<- merge(BAandTPApipo3, cycle23burn4, all.x = TRUE)
+
+# Need to match dataframe up with its paired cycle 1
+subset<-unique(BAandTPApipo4[BAandTPApipo4$cycle_aw==2 & BAandTPApipo4$Fire==1 |
+                               BAandTPApipo4$cycle_aw==3 & BAandTPApipo4$Fire==1,]$SUCP)
+
+fcCOND7<- BAandTPApipo4 %>% filter(cycle_aw==2 & Fire==1 |
+                               cycle_aw==3 & Fire==1 | 
+                               cycle_aw==2 & SUCP%in%subset |
+                               cycle_aw==3 & SUCP%in%subset)
+
+length(unique(fcCOND7$SUCP)) # 27 plots with fire
+
+#### Need to create new column which identifies these SUCP's had a fire occur. 
+fcCOND7$RecentFire= ifelse(fcCOND7$INVYR>=0, 1,0)
 summary(fcCOND7)
+fcCOND8<- fcCOND7[, c(1:11, 13)]
 
-# 5. Lump all fire DSTRBCD to 1 
-fcCOND7$DSTRBCD1 [fcCOND7$DSTRBCD1 >29| fcCOND7$DSTRBCD1<33] <- "1"
-fcCOND7$DSTRBCD1<- factor(fcCOND7$DSTRBCD1)
-summary(fcCOND7)
-duplicated(fcCOND7)
-fcCOND8<- fcCOND7 %>% distinct()
+# Now, need to merge this file with the greater file. 
+
 summary(fcCOND8)
-fcCOND9<- fcCOND8[, c(1,2,4,5)]
-summary(fcCOND9)
-fcCOND10<- fcCOND9 %>% distinct()
-summary(fcCOND10)
 
-#### 6. Merge with plot list
-summary(plotlist2)
+BAandTPApipo5<- merge(BAandTPApipo3, fcCOND8, all.x = TRUE)
+BAandTPApipo5$RecentFire[is.na(BAandTPApipo5$RecentFire)]<-0
+BAandTPApipo5$RecentFire<- factor(BAandTPApipo5$RecentFire)
+summary(BAandTPApipo5)
 
-fcCOND11<- merge(plotlist2, fcCOND10, all.x = TRUE)
-summary(fcCOND11)
-fcCOND12<- fcCOND11 %>% distinct()
-summary(fcCOND12)
 
-length(unique(fcCOND8$SUCP))
-#check
-firetest<- fcCOND8 %>% filter(DSTRBCD1==1)
-length(unique(firetest$SUCP)) #109 burned plots
+ggplot(BAandTPApipo5, aes(x=cycle_aw, y=Treecount, linetype=STATUSCD))+
+  facet_grid(RecentFire~SizeClass)+
+  geom_smooth(aes(group=STATUSCD), method = "glm", size=1)+
+  theme_set(theme_bw())+
+  labs(x= "Inventory Cycle")+
+  labs(y= "Number Trees/Plot")+
+  theme(axis.title.y = element_text(size=15))+
+  theme(strip.text=element_text(size=10))+
+  theme(legend.title = element_blank())
+
 
